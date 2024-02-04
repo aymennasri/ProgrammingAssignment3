@@ -10,7 +10,8 @@ rankall <- function(outcome, num = "best"){
         group_by(State)%>%
         mutate(heart_attack,
                .keep = "none")%>%
-        summarize(rate=min(heart_attack, na.rm = T))
+        summarize(rate=min(heart_attack, na.rm = T))%>%
+        arrange(rate)
     }
   }
   return(result)
