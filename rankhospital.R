@@ -1,54 +1,46 @@
 # The function responsible for ranking hospitals by outcome in a state
 
-rankhospital <- function(state, outcome, num = "best"){
-  result_state <- hospitals_df %>%
-    filter(State==state)
-  if(num=="best"){
-    return(best(state,outcome))
+rankhospital <- function(state, outcome, num = "best") {
+  
+  if(!(state %in% hospitals$State)) {
+    stop("invalid state")
   }
-  if(num=="worst"){
-    if(!(state %in% hospitals_df[,"State"])){
-      print("invalid state")
-      stop(rankhospital)
-    }
-    if(!(outcome %in% c("heart attack", "heart failure", "pneumonia"))){
-      print("invalid outcome")
-      stop(rankhospital)
-    }
-    if(outcome=="heart attack"){
-      result <- result_state[which.max(result_state$heart_attack),]
-      return(result[,"hospital_name"])
-    }
-    if(outcome=="heart failure"){
-      result <- result_state[which.max(result_state$heart_failure),]
-      return(result[,"hospital_name"])
-    }
-    if(outcome=="pneumonia"){
-      result <- result_state[which.max(result_state$pneumonia),]
-      return(result[,"hospital_name"])
-    }
+  
+  outcome <- tolower(outcome)
+  outcome_col <- switch(outcome,
+                        "heart attack" = "heart_attack",
+                        "heart failure" = "heart_failure",
+                        "pneumonia" = "pneumonia",
+                        stop("invalid outcome"))
+  
+  state_df <- hospitals %>%
+    filter(State == state) %>%
+    arrange(!!sym(outcome_col), hospital_name)
+  
+  if(num == "best") {
+    state_df |>
+      slice_min(!!sym(outcome_col), with_ties = FALSE, na_rm = T) |> 
+      pull(hospital_name)
   }
-  if(is.numeric(num)){
-    if(outcome=="heart attack"){
-      result_state <- result_state %>%
-        arrange(heart_attack)
-      return(result_state[num,"hospital_name"])
+  
+  else if(num == "worst") {
+    state_df |>
+      slice_max(!!sym(outcome_col), with_ties = FALSE, na_rm = T) |> 
+      pull(hospital_name)
+  }
+  
+  # Handle numeric ranking
+  else if(is.numeric(num)) {
+    if(num > 0 && num <= nrow(state_df)) {
+      return(state_df$hospital_name[num])
     }
-    if(outcome=="heart failure"){
-      result_state <- result_state %>%
-        arrange(heart_failure)
-      return(result_state[num,"hospital_name"])
-    }
-    if(outcome=="pneumonia"){
-      result_state <- result_state %>%
-        arrange(pneumonia)
-      return(result_state[num,"hospital_name"])
+    else {
+      return(NA)
     }
   }
 }
 
-rankhospital("NC", "heart attack", "worst")
-rankhospital("WA", "heart attack", 7)
-rankhospital("TX","pneumonia",10)
-rankhospital("NY", "heart attack", 7)
+rankhospital("TX", "heart failure", 4)
+rankhospital("MD", "heart attack", "worst")
 rankhospital("MN", "heart attack", 5000)
+rankhospital("TX", "pneumonia", 10)
